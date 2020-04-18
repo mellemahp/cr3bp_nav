@@ -1,0 +1,61 @@
+title = "Simulation Configuration 1: Simple Halo Orbit Navigation"
+author = "Hunter Mellema <mellemahp@gmail.com>"
+date = "April 2020"
+description = """
+    Defines a simple 3 Body orbit simulation for the exploration of the 
+    use of Gaussian mixture models for navigation in three body environments
+"""
+
+[results]
+    folder = "simulation1"
+    measurements = "sim1_msr.db"
+    estimates = "sim1_est.db"
+
+[simulation]
+    dimensional = false
+    start = 0.0
+    end = 9.425 # note, dimensional, NOT nondimensional
+    msr_timestep = 0.01 # seconds (1 / hertz)
+    reference_frame = "Earth-Moon CR3BP"
+
+[satellite]
+    description = "Simple halo orbit"
+
+    [satellite.istate]
+    dimensional = false
+    position = ["-0.826", "0.0", "0.0"]
+    velocity = ["0.0", "0.100", "0.1"]
+    time = 0.0
+        
+    [satellite.properties]
+    mass = 100 # kg
+    c_d = 2.0 # coefficient of drag (dimensionless)
+    c_r = 1.2 # coefficient of reflectivity (dimensionless)
+
+[stations]
+    [stations.defaults]
+    el_mask = 15 # deg
+    measurements = ['R3'] # range and range rate
+    covariance = ["1e-5**2", "1e-6**2"] # 1cm and 1 mm/s sigmas
+
+    [stations.Goldstone]
+    stn_id = 'DSS 11'
+    latitude = 35.0 # deg 
+    longitude = 116.0 # deg
+    elevation = 0.900 # km
+
+    [[stations.Canberra]]
+    stn_id = 'DSS 35'
+    latitude = -35 # deg 
+    longitude = -148 # deg
+    elevation = 0.55 # km
+
+    [[stations.Madrid]]
+    stn_id = 'DSS 54'
+    latitude = 40.0 # deg 
+    longitude = 4.0 # deg
+    elevation = 0.720 # km
+
+[filters]
+
+
