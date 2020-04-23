@@ -12,10 +12,10 @@ description = """
     estimates = "sim1_est.db"
 
 [simulation]
-    dimensional = false
+    dimensional = true
     start = 0.0
-    end = 9.425 # note, dimensional, NOT nondimensional
-    msr_timestep = 0.01 # seconds (1 / hertz)
+    end = 1.21e+6 # 10 days in seconds
+    msr_timestep = 100 # seconds
     reference_frame = "Earth-Moon CR3BP"
 
 [satellite]
@@ -39,19 +39,19 @@ description = """
     covariance = ["1e-5**2", "1e-6**2"] # 1cm and 1 mm/s sigmas
 
     [stations.Goldstone]
-    stn_id = 'DSS 11'
+    stn_id = 11
     latitude = 35.0 # deg 
     longitude = 116.0 # deg
     elevation = 0.900 # km
 
-    [[stations.Canberra]]
-    stn_id = 'DSS 35'
+    [stations.Canberra]
+    stn_id = 35
     latitude = -35 # deg 
     longitude = -148 # deg
     elevation = 0.55 # km
 
-    [[stations.Madrid]]
-    stn_id = 'DSS 54'
+    [stations.Madrid]
+    stn_id = 54
     latitude = 40.0 # deg 
     longitude = 4.0 # deg
     elevation = 0.720 # km
