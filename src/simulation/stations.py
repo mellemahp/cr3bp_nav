@@ -12,10 +12,11 @@ Date: April 2020
 import numpy as np
 
 # local imports
-from constants import(
+from .constants import(
     THETA_0, R_E, W_E_ND, R_E_ND, EARTH_ANG_VEL_ND, NON_DIM_DIST_TO_DIM, 
     MU_EARTH_MOON
 ) 
+from .measurements import R3Msr
 
 # std library 
 import json
@@ -105,30 +106,54 @@ class CR3BPEarthStn(object):
         return string
 
 
-    def _check_elevation(self, sc_state, time):
-        """Checks to see if the spacecraft is visible
+    def gen_msr(self, sc_state, time, msr_type="R3Msr"): 
+        """Generates a measurement if the spacecraft is visible
+
         Args:
             sc_state (np.ndarray): spacecraft state vector, pos, vel must be first 6 terms
             time (float): time since reference epoch
+            msr_type (str): name of measurement to use (default = R3 (range and range rate))
+
         Returns:
             tuple(bool, float, np.ndarray)
+
         """
-        stn_state = self.get_state(time)
-        line_o_sight = sc_state[0:3] - stn_state[0:3]
-        num = np.dot(stn_state[0:3], line_o_sight)
-        denom = np.linalg.norm(stn_state[0:3]) * np.linalg.norm(line_o_sight)
+        valid, el, stn_state = self._check_elevation(sc_state, time)
+        if valid: 
+            return globals()[msr_type].from_stn(
+                time, sc_state, stn_state, self.stn_id, self.cov
+            )
+        else: 
+            return None
+
+    def _check_elevation(self, sc_state, time):
+        """Checks to see if the spacecraft is visible
+
+        Args:
+            sc_state (np.ndarray): spacecraft state vector, pos, vel must be first 6 terms
+            time (float): time since reference epoch
+
+        Returns:
+            tuple(bool, float, np.ndarray)
+
+        """
+        stn_state_ns = self.state(time, include_shift=False)
+        stn_state_shift = stn_state_ns + np.array([self.mu, 0.0, 0.0, 0.0, 0.0, 0.0])
+        line_o_sight = sc_state[0:3] - stn_state_shift[0:3]
+        num = np.dot(stn_state_ns[0:3], line_o_sight)
+        denom = np.linalg.norm(stn_state_ns[0:3]) * np.linalg.norm(line_o_sight)
         zenel = np.arccos(num / denom)
         el = np.pi / 2 - zenel
 
-        if np.deg2rad(self.el_mask) < el:
+        if el > np.deg2rad(self.el_mask):
            flag = True
         else:
            flag = False
 
-        return (flag, el, stn_state)
+        return (flag, el, stn_state_shift)
 
 
-    def state(self, time_nd, plotting=False):
+    def state(self, time_nd, include_shift=True):
         """Finds the station state in ECI at a given nondimensional CR3BP time
 
         Args:
@@ -140,7 +165,7 @@ class CR3BPEarthStn(object):
         """
         rot_mat = ecef_to_eci_nd(time_nd)
         pos = np.matmul(rot_mat, self.pos)
-        if not plotting:
+        if include_shift:
             pos = pos + np.array([self.mu, 0.0, 0.0])
 
         vel_ecef = np.cross(np.transpose(EARTH_ANG_VEL_ND),

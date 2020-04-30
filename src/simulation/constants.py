@@ -31,6 +31,7 @@ R_M_ND = R_M * (1 / NON_DIM_DIST_TO_DIM)
 W_E = 7.2921158553e-5 # rotation rate of the earth (radians / sec)
 W_E_ND = W_E * (NON_DIM_TIME_TO_DIM)
 THETA_0 = 0.0
+EARTH_ANG_VEL = np.array([[0.0], [0.0], [W_E]])
 EARTH_ANG_VEL_ND = np.array([[0.0], [0.0], [W_E_ND]])
 
 ### Mu's for three body systems ###

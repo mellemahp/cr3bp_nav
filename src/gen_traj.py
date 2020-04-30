@@ -22,19 +22,14 @@ from os import path
 from copy import deepcopy
 
 # local imports
-from sql_schema import (
-    MSR_CREATE_STN_TABLE,
-    MSR_CREATE_MSR_TABLE,
-    MSR_CREATE_TRUTH_TABLE,
-    RES_CREATE_TABLE,
-    INSERT_TRUTH_STATE,
-    INSERT_STN,
-    GET_LAST_TRUTH_STATE_TIMES,
-    GET_ALL_TRUTH_STATES
-)
-from cr3bp import CR3BPSystem
-from stations import CR3BPEarthStn
-from constants import MU_EARTH_MOON, NON_DIM_TIME_TO_DIM, NON_DIM_DIST_TO_DIM
+from sql.schema import CreateMsr
+from sql.insert import InsertMsr
+from sql.queries import GetMsr
+
+from simulation.cr3bp import CR3BPSystem
+from simulation.constants import(
+    MU_EARTH_MOON, NON_DIM_TIME_TO_DIM, NON_DIM_DIST_TO_DIM
+) 
 
 # === End Imports ===
 
@@ -55,7 +50,7 @@ def folder_setup(config):
         os.mkdir(results_path)
 
 
-def msr_database_setup(config, restart):
+def database_setup(config, restart):
     """Creates new results and measurements databases if ones do not exist or if restart flag is thrown
 
     """
@@ -80,17 +75,14 @@ def msr_database_setup(config, restart):
         except FileNotFoundError:
             print("No databases found to replace. Continuing...")
 
-  
 
-    if not path.exists(msr_db_path) or not path.exists(res_db_path):
-        print("Creating new databases...")
+    if not path.exists(msr_db_path):
+        print("Creating new measurement database...")
 
         # msr db setup
         conn_msr = sqlite3.connect(msr_db_path)
         curs_msr = conn_msr.cursor()
-        curs_msr.execute(MSR_CREATE_STN_TABLE)
-        curs_msr.execute(MSR_CREATE_MSR_TABLE)
-        curs_msr.execute(MSR_CREATE_TRUTH_TABLE)
+        curs_msr.execute(CreateMsr.TRUTH_STATES_TABLE)
         curs_msr.close()
 
         print("New Databases created")
@@ -124,13 +116,13 @@ def simulate_trajectory(config, times, conn_msr):
     
     """
     # check what last time in the database is
-    c = conn_msr.execute(GET_LAST_TRUTH_STATE_TIMES)
+    c = conn_msr.execute(GetMsr.LAST_TRUTH_STATE_TIMES)
     query_res = c.fetchall()
     last_time_in_db = query_res[0] if query_res else None
 
     if last_time_in_db and last_time_in_db >= times[-1]: 
         print("Using previously propagated data")
-        c = conn_msr.execute(GET_ALL_TRUTH_STATES)
+        c = conn_msr.execute(GetMsr.ALL_TRUTH_STATES)
         return [
             json.loads(pos) + json.loads(vel) for pos, vel in 
             c.fetchall()
@@ -166,7 +158,7 @@ def simulate_trajectory(config, times, conn_msr):
 
             # attempt to write to database
             curs.execute(
-                INSERT_TRUTH_STATE,
+                InsertMsr.TRUTH_STATE,
                 (
                     json.dumps(sol_val[:3]),
                     json.dumps(sol_val[3:]),
@@ -184,66 +176,6 @@ def simulate_trajectory(config, times, conn_msr):
     return states
 
 
-def create_stations(config, conn_msr, restart):
-    """ Establishes Stations in Database"""
-    if restart == True: 
-        print("Adding Stations To database...")
-        stn_template = {
-            'stn_id': None,
-            'stn_name': None,
-            'latitude': None,
-            'longitude': None,
-            'elevation': None,
-            'el_mask': None, 
-            'measurements': None,
-            'covariance': None, 
-            'mu': MU_EARTH_MOON
-        }
-        
-        for stn in [stn for stn in config['stations'] if not stn == 'defaults']: 
-            stn_data = deepcopy(stn_template)
-            stn_data['stn_name'] = stn
-            for val in [val for val in stn_template if not val in ['stn_name', 'mu']]: 
-                try: 
-                    data = config['stations']['defaults'][val]
-                except KeyError: 
-                    data = config['stations'][stn][val]
-
-                stn_data[val] = data
-
-            curs = conn_msr.cursor()
-            curs.execute(
-                INSERT_STN,
-                (
-                    stn_data['stn_id'],
-                    stn_data['stn_name'], 
-                    json.dumps(stn_data['covariance']),
-                    stn_data['latitude'], 
-                    stn_data['longitude'], 
-                    stn_data['elevation'], 
-                    stn_data['el_mask'], 
-                    json.dumps(stn_data['measurements']), 
-                    stn_data['mu']
-                ),
-            )
-        print("Stations added to db")
-    else: 
-        print("Using Pre-stored stations")
-
-    # extract stations from DB
-    conn_msr.row_factory = sqlite3.Row
-    curs = conn_msr.cursor()
-    curs.execute('SELECT * from stations')
-    query_res = [dict(q) for q in curs.fetchall()]
-    station_list = [CR3BPEarthStn.from_db_object(s) for s in query_res]
-
-    return station_list
-
-
-def simulate_measurements(config, times, states, station_list, conn_msr): 
-    """ Simulates measurements for stations """
-    
-
 def main(args):
     """ Main Method for managing a simulation """
     with open(args.config) as f:
@@ -253,13 +185,14 @@ def main(args):
     folder_setup(config)
 
     # sets up sqlite database if they do not exist or if restart flag thrown
-    conn_msr = msr_database_setup(config, args.r)
+    conn_msr = database_setup(config, args.r)
 
     # run trajectory and measurement simulation
     times = get_simulation_times(config)
-    stn_list = create_stations(config, conn_msr, args.r)
-    states = simulate_trajectory(config, times, conn_msr)
-    simulate_measurements(config, times, states, stn_list, conn_msr)
+    simulate_trajectory(config, times, conn_msr)
+
+    return 0
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a CR3BP simulation")
@@ -278,5 +211,5 @@ if __name__ == "__main__":
 
     ### exit ###
     end_time = time.time() - begin_time
-    print("---- Simulation Complete: {} seconds ----".format(end_time))
+    print("---- Trajectory Simulation Complete: {} seconds ----".format(end_time))
     exit()

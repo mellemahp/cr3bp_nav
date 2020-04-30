@@ -1,11 +1,11 @@
 import json 
 import sqlite3
-from sql_schema import GET_ALL_TRUTH_STATES
+from sql.queries import GetMsr
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
-from constants import R_E_ND, R_M_ND,  MU_EARTH_MOON
-from stations import CR3BPEarthStn
+from simulation.constants import R_E_ND, R_M_ND,  MU_EARTH_MOON
+from simulation.stations import CR3BPEarthStn
 
 
 def draw_sphere(ax, radius, center, color, mesh=False):
@@ -40,7 +40,7 @@ def plot_stns(ax, conn, scaling=10):
     for stn in station_list:
         pos_list = []
         for time in times: 
-            pos_list.append(stn.state(time, plotting=True)[:3] * scaling + np.array([MU_EARTH_MOON, 0.0, 0.0]))
+            pos_list.append(stn.state(time, include_shift=False)[:3] * scaling + np.array([MU_EARTH_MOON, 0.0, 0.0]))
         xs = [s[0] for s in pos_list]
         ys = [s[1] for s in pos_list]
         zs = [s[2] for s in pos_list]
@@ -48,7 +48,7 @@ def plot_stns(ax, conn, scaling=10):
 
 
 def plot_traj(ax, conn):
-    c = conn.execute(GET_ALL_TRUTH_STATES) 
+    c = conn.execute(GetMsr.ALL_TRUTH_STATES) 
     s = [ 
         json.loads(pos) + json.loads(vel) for pos, vel in  
         c.fetchall() 
@@ -92,7 +92,7 @@ def set_axes_equal(ax):
 
 if __name__ == "__main__": 
     scaling = 5
-    conn = sqlite3.connect('./simulation1/sim1_msr.db') 
+    conn = sqlite3.connect('./base_sim/sim1_msr.db') 
 
     fig = plt.figure(figsize = (10, 10))
     ax = fig.add_subplot(111, projection='3d')    

@@ -7,7 +7,7 @@ description = """
 """
 
 [results]
-    folder = "simulation1"
+    folder = "base_sim"
     measurements = "sim1_msr.db"
     estimates = "sim1_est.db"
 
@@ -36,7 +36,7 @@ description = """
     [stations.defaults]
     el_mask = 15 # deg
     measurements = ['R3'] # range and range rate
-    covariance = ["1e-5**2", "1e-6**2"] # 1cm and 1 mm/s sigmas
+    covariance = ["2.6e-10**2", "9.7e-6**2"] # ~10cm and 10 mm/s sigmas in ND dist
 
     [stations.Goldstone]
     stn_id = 11

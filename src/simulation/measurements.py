@@ -20,7 +20,7 @@ class Msr(ABC):
         state_vec (np.array([float])): states vector of the satellite
         stn (Station): station object associated with the measurement 
         time_tag (float): mod julian time at which this measurement was taken
-        cov (np.ndarray([[float]])): measurment covariance matrix
+        cov (np.ndarray([[float]])): measurement covariance matrix
 
     """
     def __init__(self, time_tag, msr, stn, cov):
@@ -28,7 +28,6 @@ class Msr(ABC):
         self.msr = msr
         self.stn = stn
         self.cov = cov
-
 
     @classmethod
     def from_stn(cls, time, state_vec, stn_vec, stn, cov):
@@ -76,7 +75,7 @@ class Msr(ABC):
 
 
     @abstractmethod
-    def calc_msr(self):
+    def calc_msr(self, state_vec, station_vec):
         """Method that defines the equations that compute the
         measurement
 
@@ -84,14 +83,45 @@ class Msr(ABC):
 
         """
         pass
+    
+
+class R3Msr(Msr):
+    """Represents a RANGE and RANGE RATE measurement taken by a
+    ground station
+    Args:
+        state_vec (list[adnumber]): list of parameters being estimated
+            in the state vector. Should be dual numbers (using the
+            adnumber package)
+        stn_id (int): A unique int identifier for the station that took
+            the measurement
+        time_tag (float): mod julian time at which this measurement was
+            taken
+        cov (np.array([float])): measurment covariance matrix
+    """
+    def __init__(self, time_tag, msr, stn_id, cov):
+        super(R3Msr, self).__init__(time_tag, msr, stn_id, cov)
 
 
-    @abstractmethod
-    def partials(self):
-        """Computes the partial matrix with respect to the estimated
-        state vector
-
-        Note: users MUST overwrite this method in child classes
-
+    def calc_msr(self, state_vec, stn_state):
+        """Calculates the instantaneous range and range rate measurement
+        Args:
+            state_vec (list[adnumber]): list of parameters being estimated
+                in the state vector. Should be dual numbers (using the
+                adnumber package)
+            stn_vec (list[float || adnumber]): state vector of the
+                station taking the measurement. Should be floats if
+                the station is not being estimated. If the stn state
+                is being estimated then adnumber with tagged names
+                should be used instead
+            time
+        Return:
+            list([1x2]): returns a 1 by 2 list of the range and
+                range rate measurements
         """
-        pass
+        # if stn_state.any():
+        stn_vec = stn_state
+        rho = np.linalg.norm(np.subtract(state_vec[0:3], stn_vec[0:3]))
+        rho_dot = np.dot(np.subtract(state_vec[0:3], stn_vec[0:3]),
+                         np.subtract(state_vec[3:6], stn_vec[3:6]))/ rho
+
+        return [rho, rho_dot]
