@@ -12,6 +12,9 @@ Date: April 2020
 import numpy as np
 from numpy.linalg import norm
 
+# local imports
+from .dynamics_partials import cr3bp_jacobian
+
 #=== End Imports ===
         
 class CR3BPSystem(object):
@@ -51,6 +54,9 @@ class CR3BPSystem(object):
 
         return np.array([dx, dy, dz, ddx, ddy, ddz])
 
+    def jacobian(self, state): 
+        return cr3bp_jacobian(self.mu, state)
+
     @staticmethod            
     def r_1(mu, state): 
         """Position Vector from the primary body (i.e. Earth) to the satellite
@@ -80,26 +86,4 @@ class CR3BPSystem(object):
         return [(state[0] + 1 - mu), state[1], state[2]]
 
     
-    def dr_1(self, state): 
-        """Derivative of Position Vector from primary body (i.e. Earth) to the satellite
-        
-        Args: 
-            state (np.array): state vector of satellite in non-dimensional
-                circularly restricted three body coordinates
-
-        Returns: 
-            np.array
-
-        """
-
-    def dr_2(self, state):
-        """Derivative of Position Vector from secondary body (i.e. Moon) to the satellite
-        
-        Args: 
-            state (np.array): state vector of satellite in non-dimensional
-                circularly restricted three body coordinates
-
-        Returns: 
-            np.array
-            
-        """
+    

@@ -12,9 +12,6 @@ Date: April 2020
 import numpy as np
 from numpy.linalg import norm
 
-# local imports
-from cr3bp import CR3BPSystem
-
 #=== End Imports ===
 
 #=========================
@@ -243,8 +240,8 @@ def cr3bp_jacobian(mu, state):
         np.array: 6x6 Matrix
 
     """
-    r_1_norm = norm(CR3BPSystem.r_1(mu, state))
-    r_2_norm = norm(CR3BPSystem.r_2(mu, state))
+    r_1_norm = norm(r_1(mu, state))
+    r_2_norm = norm(r_2(mu, state))
     r_13_inv = 1 / r_1_norm**3
     r_23_inv = 1 / r_2_norm**3
     r_15_inv = r_13_inv * 1 / r_1_norm**2
@@ -279,6 +276,33 @@ def cr3bp_jacobian(mu, state):
             zddot_d_dz
         ]
     ])
+
+
+def r_1(mu, state): 
+    """Position Vector from the primary body (i.e. Earth) to the satellite
+    
+    Args: 
+        state (np.array): state vector of satellite in non-dimensional
+            circularly restricted three body coordinates
+
+    Returns: 
+        np.array
+
+    """
+    return [(state[0] - mu), state[1], state[2]]
+
+def r_2(mu, state):
+    """Position Vector from secondary body (i.e. Moon) to the satellite
+    
+    Args: 
+        state (np.array): state vector of satellite in non-dimensional
+            circularly restricted three body coordinates
+
+    Returns: 
+        np.array
+
+    """ 
+    return [(state[0] + 1 - mu), state[1], state[2]]
 
 
 #=========================

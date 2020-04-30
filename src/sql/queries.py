@@ -11,4 +11,4 @@ class GetMsr(object):
     LAST_TRUTH_STATE_TIMES = "SELECT timestamp FROM truth_states ORDER BY timestamp DESC LIMIT 1;"
     ALL_TRUTH_STATES = "SELECT position, velocity FROM truth_states ORDER BY timestamp DESC;"
     ALL_TRUTH_STATE_AND_TIMES = "SELECT position, velocity, timestamp FROM truth_states ORDER BY timestamp DESC;"
-    ALL_MSRS = "SELECT stn_id, measurement, timestamp FROM measurements ORDER BY timestamp DESC;"
+    ALL_MSRS = "SELECT stn_id, measurement, timestamp, msr_type, covariance FROM measurements ORDER BY timestamp DESC;"

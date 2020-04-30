@@ -57,5 +57,14 @@ description = """
     elevation = 0.720 # km
 
 [filters]
+    [filters.istate]
+        dimensional = false
+        position = ["-0.826", "0.000", "0.000"]
+        velocity = ["0.0", "0.10", "0.10"]
+        time = 0.0
+
+    [filters.icov]
+        position = 1.0
+        velocity = 0.5
 
 

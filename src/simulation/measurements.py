@@ -12,6 +12,9 @@ Date: April 2020
 # standard library imports
 from abc import ABC, abstractmethod
 import numpy as np
+import json
+
+from ad import jacobian
 
 
 class Msr(ABC):
@@ -83,6 +86,26 @@ class Msr(ABC):
 
         """
         pass
+
+    @classmethod
+    @abstractmethod
+    def from_db(cls, data, stn_dict):
+        """Method that defines the conversion from a database query to an object
+
+        Note: users MUST overwrite this method in child classes
+
+        """
+        pass
+
+    def partials(self, state_vec, stn_pos):
+        """Computes the partial matrix with respect to the estimated
+        state vector
+        returns:
+            list(list): jacobian matrix of the measurement with
+                respect to the given state vector
+        """
+        return jacobian(self.calc_msr(state_vec, stn_pos),
+                        state_vec)
     
 
 class R3Msr(Msr):
@@ -125,3 +148,11 @@ class R3Msr(Msr):
                          np.subtract(state_vec[3:6], stn_vec[3:6]))/ rho
 
         return [rho, rho_dot]
+
+    @classmethod
+    def from_db(cls, data, stn_dict):
+        (stn_id, measurement, timestamp, _, covariance) = data
+        measurement = json.loads(measurement)
+        cov = [eval(v) for v in json.loads(covariance)]
+
+        return cls(timestamp, measurement, stn_dict[stn_id], cov)
