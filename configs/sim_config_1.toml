@@ -35,8 +35,8 @@ description = """
 [stations]
     [stations.defaults]
     el_mask = 15 # deg
-    measurements = ['R3'] # range and range rate
-    covariance = ["2.6e-10**2", "9.7e-6**2"] # ~10cm and 10 mm/s sigmas in ND dist
+    measurements = ['Range'] # range and range rate
+    covariance = ["2.6e-10**2"] # ~10cm and 10 mm/s sigmas in ND dist
 
     [stations.Goldstone]
     stn_id = 11
@@ -57,14 +57,14 @@ description = """
     elevation = 0.720 # km
 
 [filters]
-    [filters.istate]
-        dimensional = false
-        position = ["-0.826", "0.000", "0.000"]
-        velocity = ["0.0", "0.10", "0.10"]
+    [filters.perturbation]
+        dimensional = true
+        position = ["-10.0", "10.0", "5.0"]
+        velocity = ["0.01", "0.001", "0.001"]
         time = 0.0
 
     [filters.icov]
-        position = 1.0
-        velocity = 0.5
+        position = 0.0005 # ~100km position
+        velocity = 0.05 # ~ 0.01 km/sec vel
 
 

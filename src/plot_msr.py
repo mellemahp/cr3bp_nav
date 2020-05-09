@@ -34,7 +34,7 @@ if __name__ == "__main__":
     for msr in msrs: 
         msr_vals = json.loads(msr[1])
         stn_dict[msr[0]]["range"].append(msr_vals[0])
-        stn_dict[msr[0]]["range_rate"].append(msr_vals[1])
+        #stn_dict[msr[0]]["range_rate"].append(msr_vals[1])
         stn_dict[msr[0]]["times"].append(msr[2])
 
     stn_labels = {
@@ -44,14 +44,14 @@ if __name__ == "__main__":
     }
 
     for stn in stn_dict: 
-        ax[0].scatter(stn_dict[stn]["times"], stn_dict[stn]["range"], s=0.8)
-        ax[1].scatter(stn_dict[stn]["times"], stn_dict[stn]["range_rate"], label=stn_labels[stn], s=0.8)
+        ax[0].scatter(stn_dict[stn]["times"], stn_dict[stn]["range"], label=stn_labels[stn], s=0.8)
+        #ax[1].scatter(stn_dict[stn]["times"], stn_dict[stn]["range_rate"], label=stn_labels[stn], s=0.8)
 
     ax[1].set_xlabel("Non-Dimensional CR3BP Time")
     ax[1].set_ylabel("CR3BP Range-Rate")
     ax[0].set_ylabel("CR3BP Range")
     ax[1].grid('on')
     ax[0].grid('on')
-    ax[1].legend(title="Station IDs")
+    ax[0].legend(title="Station IDs", loc='lower right')
     ax[0].set_title("True Measurements of spacecraft Range and Range-Rate")
     plt.show()

@@ -25,7 +25,7 @@ def plot_moon(ax, scaling=10):
 
 
 def plot_earth(ax, scaling=10): 
-    draw_sphere(ax, R_E_ND * scaling, [MU_EARTH_MOON, 0, 0], 'r', True)
+    draw_sphere(ax, R_E_ND * scaling, [MU_EARTH_MOON, 0, 0], 'gray', True)
 
 
 def plot_stns(ax, conn, scaling=10):
@@ -46,11 +46,10 @@ def plot_stns(ax, conn, scaling=10):
         zs = [s[2] for s in pos_list]
         ax.plot3D(xs, ys, zs, label=stn.stn_name)
 
-
 def plot_traj(ax, conn):
     c = conn.execute(GetMsr.ALL_TRUTH_STATES) 
     s = [ 
-        json.loads(pos) + json.loads(vel) for pos, vel in  
+        json.loads(pos) + json.loads(vel) for pos, vel, _ in  
         c.fetchall() 
     ]     
     xs = [x[0] for x in s]
@@ -96,7 +95,7 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize = (10, 10))
     ax = fig.add_subplot(111, projection='3d')    
-    plot_earth(ax, scaling*0.9)
+    plot_earth(ax, scaling*0.80)
     plot_moon(ax, scaling)
     plot_stns(ax, conn, scaling)
     plot_traj(ax, conn)

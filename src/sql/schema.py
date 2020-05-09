@@ -38,3 +38,14 @@ class CreateMsr(object):
                             timestamp numeric NOT NULL, 
                             properties string
                         );'''       
+
+class CreateEst(object):
+    """ Container object for Commands to Create tables in the Estimates DB """
+    EST_TABLE = '''CREATE TABLE IF NOT EXISTS estimates(
+                    id integer PRIMARY KEY,
+                    filter_name integer NOT NULL, 
+                    time numeric NOT NULL, 
+                    state_est string NOT NULL,
+                    covariance string NOT NULL, 
+                    residual string NOT NULL
+                );'''

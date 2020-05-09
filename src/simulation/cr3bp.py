@@ -84,6 +84,3 @@ class CR3BPSystem(object):
 
         """ 
         return [(state[0] + 1 - mu), state[1], state[2]]
-
-    
-    

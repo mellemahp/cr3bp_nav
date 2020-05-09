@@ -10,15 +10,24 @@ Date: April 2020
 # === Begin Imports ===
 # third party
 import numpy as np
+from numpy.linalg import norm
 
 # local imports
-from .constants import(
-    THETA_0, R_E, W_E_ND, R_E_ND, EARTH_ANG_VEL_ND, NON_DIM_DIST_TO_DIM, 
-    MU_EARTH_MOON
-) 
-from .measurements import R3Msr
+from .constants import (
+    THETA_0,
+    R_E,
+    W_E_ND,
+    R_E_ND,
+    EARTH_ANG_VEL_ND,
+    NON_DIM_DIST_TO_DIM,
+    MU_EARTH_MOON,
+    E_M_OFFSET_ANGLE, 
+    OMEGA_CR3BP, 
+    CR3BP_ANG_VEL
+)
+from .measurements import R3Msr, Range
 
-# std library 
+# std library
 import json
 
 # === End Imports ===
@@ -36,7 +45,20 @@ class CR3BPEarthStn(object):
             every measurement taken by this station
 
     """
-    def __init__(self, stn_name, stn_id, pos_ecef_nd, el_mask, cov, msrs, mu, lat=None, longitude=None, el=None):
+
+    def __init__(
+        self,
+        stn_name,
+        stn_id,
+        pos_ecef_nd,
+        el_mask,
+        cov,
+        msrs,
+        mu,
+        lat=None,
+        longitude=None,
+        el=None,
+    ):
         self.stn_name = stn_name
         self.stn_id = stn_id
         self.pos = pos_ecef_nd
@@ -60,24 +82,23 @@ class CR3BPEarthStn(object):
 
         """
         pos_nd = lat_long_to_ecef(
-            station_data['latitude_deg'], 
-            station_data['longitude_deg'],
-            station_data['elevation_km']
+            station_data["latitude_deg"],
+            station_data["longitude_deg"],
+            station_data["elevation_km"],
         ) * (1 / NON_DIM_DIST_TO_DIM)
-        
-        return cls(
-            station_data['stn_name'],
-            station_data['stn_id'],
-            pos_nd, 
-            station_data['elevation_mask_deg'], 
-            json.loads(station_data['covariance']),
-            json.loads(station_data['measurement_types']),
-            station_data['mu'], 
-            station_data['latitude_deg'], 
-            station_data['longitude_deg'],
-            station_data['elevation_km']
-        )
 
+        return cls(
+            station_data["stn_name"],
+            station_data["stn_id"],
+            pos_nd,
+            station_data["elevation_mask_deg"],
+            json.loads(station_data["covariance"]),
+            json.loads(station_data["measurement_types"]),
+            station_data["mu"],
+            station_data["latitude_deg"],
+            station_data["longitude_deg"],
+            station_data["elevation_km"],
+        )
 
     def __repr__(self):
         string = """
@@ -95,18 +116,17 @@ class CR3BPEarthStn(object):
         """.format(
             self.stn_name,
             self.stn_id,
-            self.pos, 
-            self.lat, 
-            self.long, 
-            self.el, 
+            self.pos,
+            self.lat,
+            self.long,
+            self.el,
             self.el_mask,
-            self.cov
+            self.cov,
         )
 
         return string
 
-
-    def gen_msr(self, sc_state, time, msr_type="R3Msr"): 
+    def gen_msr(self, sc_state, time, msr_type="R3Msr"):
         """Generates a measurement if the spacecraft is visible
 
         Args:
@@ -119,11 +139,11 @@ class CR3BPEarthStn(object):
 
         """
         valid, el, stn_state = self._check_elevation(sc_state, time)
-        if valid: 
+        if valid:
             return globals()[msr_type].from_stn(
                 time, sc_state, stn_state, self.stn_id, self.cov
             )
-        else: 
+        else:
             return None
 
     def _check_elevation(self, sc_state, time):
@@ -146,12 +166,11 @@ class CR3BPEarthStn(object):
         el = np.pi / 2 - zenel
 
         if el > np.deg2rad(self.el_mask):
-           flag = True
+            flag = True
         else:
-           flag = False
+            flag = False
 
         return (flag, el, stn_state_shift)
-
 
     def state(self, time_nd, include_shift=True):
         """Finds the station state in ECI at a given nondimensional CR3BP time
@@ -163,16 +182,22 @@ class CR3BPEarthStn(object):
             np.ndarray([1x6])
 
         """
-        rot_mat = ecef_to_eci_nd(time_nd)
-        pos = np.matmul(rot_mat, self.pos)
+        rot_mat_ecef_eci = ecef_to_eci_nd(time_nd)
+        rot_mat_eci_cr3bp = eci_to_cr3bp(time_nd)
+        pos_eci = rot_mat_ecef_eci @ self.pos
+        pos_cr3bp = rot_mat_eci_cr3bp @ pos_eci
+        
         if include_shift:
-            pos = pos + np.array([self.mu, 0.0, 0.0])
+            pos_cr3bp = pos_cr3bp + np.array([self.mu, 0.0, 0.0])
 
-        vel_ecef = np.cross(np.transpose(EARTH_ANG_VEL_ND),
-                            np.transpose(self.pos))
-        vel_eci = np.dot(rot_mat, np.transpose(vel_ecef))
-        state = np.concatenate((np.transpose(pos)[0],
-                                np.transpose(vel_eci)[0]))
+        vel_ecef = np.cross(EARTH_ANG_VEL_ND.T, self.pos.T).T
+        vel_eci = rot_mat_ecef_eci @ vel_ecef
+        vel_cr3bp_no_cr3bp_and_vel = rot_mat_eci_cr3bp @ vel_eci
+        coriolis = np.cross(CR3BP_ANG_VEL.T, pos_cr3bp.T).T
+        vel_cr3bp = vel_cr3bp_no_cr3bp_and_vel + coriolis
+
+        state = np.concatenate((pos_cr3bp.T[0], vel_cr3bp.T[0]))
+
         return state
 
 
@@ -193,11 +218,12 @@ def lat_long_to_ecef(latitude, longitude, elevation):
     phi = np.deg2rad(latitude)
     lam = np.deg2rad(longitude)
 
-    pos_ecef = (R_E + elevation) * np.array([[np.cos(phi) * np.cos(lam)],
-                                            [np.cos(phi) * np.sin(lam)],
-                                            [np.sin(phi)]])
+    pos_ecef = (R_E + elevation) * np.array(
+        [[np.cos(phi) * np.cos(lam)], [np.cos(phi) * np.sin(lam)], [np.sin(phi)]]
+    )
 
     return pos_ecef
+
 
 def ecef_to_eci_nd(time_nd, theta_0=THETA_0):
     """Calculates rotation matrix to ECI at a given time
@@ -208,9 +234,57 @@ def ecef_to_eci_nd(time_nd, theta_0=THETA_0):
     Returns:
        np.ndarray([3x3])
     """
-    alpha = theta_0 + time_nd * W_E_ND;
-    rot_mat = np.array([[np.cos(alpha), -np.sin(alpha), 0],
-                       [np.sin(alpha), np.cos(alpha), 0],
-                       [0, 0, 1]])
+    alpha = theta_0 + time_nd * W_E_ND
+    rot_mat = np.array(
+        [
+            [np.cos(alpha), -np.sin(alpha), 0],
+            [np.sin(alpha), np.cos(alpha), 0],
+            [0, 0, 1],
+        ]
+    )
 
     return rot_mat
+
+
+def eci_to_cr3bp(time_nd):
+    """Calculates rotation matrix from ECI to CR3BP at a given nondimensional time
+
+    Args:
+       time_nd (float): nondimensional time since reference epoch
+
+    Returns:
+       np.ndarray([3x3])
+
+    """
+    axis_north_pole = np.array([
+        np.sin(-E_M_OFFSET_ANGLE) * np.cos(time_nd * OMEGA_CR3BP), 
+        np.sin(-E_M_OFFSET_ANGLE) * np.sin(time_nd * OMEGA_CR3BP), 
+        np.cos(-E_M_OFFSET_ANGLE)
+    ])
+    z_axis = np.array([0.0, 0.0, 0.1])
+    rot = rotate_plane(z_axis, axis_north_pole)
+
+    return rot
+
+
+def unitcross(a, b): 
+    c = np.cross(a, b)
+    return c / norm(c)
+
+def costheta(a, b): 
+    return np.dot(a, b) / (norm(a) * norm(b))
+
+def rotate_plane(M, N): 
+    (x, y, z) = unitcross(M, N)
+    c = costheta(M, N)
+    s = np.sqrt(1-c*c)
+    C = 1-c
+    rmat = np.array(
+        [
+            [ x * x * C + c, x * y * C - z * s, x * z * C + y * s],
+            [ y * x * C + z * s, y * y * C + c, y * z * C - x * s],
+            [ z * x * C - y * s, z * y * C + x * s, z * z * C + c]
+        ]
+    )
+
+    return rmat

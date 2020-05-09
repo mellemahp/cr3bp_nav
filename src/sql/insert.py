@@ -28,3 +28,14 @@ class InsertMsr(object):
                 msr_type, 
                 covariance)
             VALUES(?,?,?,?,?)'''
+
+class InsertEst(object):
+    """ Container object for insert commands on Estimates database """
+    EST = '''INSERT INTO estimates(
+                filter_name, 
+                time, 
+                state_est,
+                covariance, 
+                residual
+            )
+            VALUES(?,?,?,?,?)'''

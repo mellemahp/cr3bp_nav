@@ -46,7 +46,7 @@ class KalmanFilter(object):
         self.cov_list = [apriori]
         self.force_model = force_model
         self.jacobian = jacobian
-        self.residuals = [0]
+        self.residuals = [np.array([[0.0]])]
         self.times = [0]
         self.len_state = len(istate)
         self.phis = []
@@ -407,7 +407,7 @@ class UKFilter(KalmanFilter):
         beta (float): scaling factor for weighting of sigma points (default=2)
         kappa (float): scaling factor for sigam point selection (default=0)
     """
-    POOL = ThreadPool(13)
+    POOL = ThreadPool(8)
 
     def __init__(self, istate, msrs, apriori, force_model, alpha=1e-3, beta=2, kappa=0,
                  process_noise=None):
@@ -542,7 +542,7 @@ class UKFilter(KalmanFilter):
         sol = solve_ivp(self.force_model,
                         [t_0, t_f],
                         X_0,
-                        method="LSODA",
+                        method="RK45",
                         atol=1e-9, rtol=1e-6
         )
         X_f = sol.y[:,-1]

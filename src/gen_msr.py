@@ -131,7 +131,7 @@ def simulate_measurements(config, times, states, station_list, conn_msr):
 
     for time, state in zip(times, states): 
         for station in station_list: 
-            msr_list.append(station.gen_msr(state, time))
+            msr_list.append(station.gen_msr(state, time, "Range"))
     
     print("Writing measurements to db")
     # attempt to write to database, removing any null msrs

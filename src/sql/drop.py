@@ -10,3 +10,7 @@ class DropMsr(object):
     """ Contianer object for drop commands on Measurement database """
     STN_IF_EXISTS = "DROP TABLE IF EXISTS stations;"
     MSR_IF_EXISTS = "DROP TABLE IF EXISTS measurements;"
+
+class DropEst(object):
+    """ Contianer object for drop commands on estimates database """
+    EST_IF_EXISTS = "DROP TABLE IF EXISTS estimates;"

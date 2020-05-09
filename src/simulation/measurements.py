@@ -71,8 +71,8 @@ class Msr(ABC):
                             len(self.msr))
             raise ValueError(msg)
 
-        mean = [0, 0]
-        cov_sigmas = np.diag([sigma**2 for sigma in sigma_vec])
+        mean = [0]
+        cov_sigmas = np.diag([sigma for sigma in sigma_vec])
         noise = np.random.multivariate_normal(mean, cov_sigmas, 1)
         self.msr = np.add(self.msr, noise)
 
@@ -148,6 +148,52 @@ class R3Msr(Msr):
                          np.subtract(state_vec[3:6], stn_vec[3:6]))/ rho
 
         return [rho, rho_dot]
+
+    @classmethod
+    def from_db(cls, data, stn_dict):
+        (stn_id, measurement, timestamp, _, covariance) = data
+        measurement = json.loads(measurement)
+        cov = [eval(v) for v in json.loads(covariance)]
+
+        return cls(timestamp, measurement, stn_dict[stn_id], cov)
+
+
+class Range(Msr):
+    """Represents a RANGE measurement taken by a
+    ground station
+    Args:
+        msr (list[float]): measurement taken by the station
+        stn_id (int): A unique int identifier for the station that took
+            the measurement
+        time_tag (float): mod julian time at which this measurement was
+            taken
+        cov (np.array([float])): measurment covariance matrix
+    """
+    def __init__(self, time_tag, msr, stn_id, cov):
+        super(Range, self).__init__(time_tag, msr, stn_id, cov)
+
+
+    def calc_msr(self, state_vec, stn_state):
+        """Calculates the instantaneous range and range rate measurement
+        Args:
+            state_vec (list[adnumber]): list of parameters being estimated
+                in the state vector. Should be dual numbers (using the
+                adnumber package)
+            stn_vec (list[float || adnumber]): state vector of the
+                station taking the measurement. Should be floats if
+                the station is not being estimated. If the stn state
+                is being estimated then adnumber with tagged names
+                should be used instead
+            time
+
+        Return:
+
+            list([float])
+
+        """
+        rho = np.linalg.norm(np.subtract(state_vec[0:3], stn_state[0:3]))
+
+        return [rho]
 
     @classmethod
     def from_db(cls, data, stn_dict):
